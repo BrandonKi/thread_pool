@@ -17,8 +17,8 @@ class ThreadPool {
     ThreadPool(size_t num_threads = std::thread::hardware_concurrency()): pool{}, task_queue{}, queue_mutex{}, manager{}, exit{false} {
 
         auto worker =   [this] {
-                            for(;;) {
-                                std::function<void()> task;
+                            while(true) {
+                                std::function<void(void)> task;
                                 {
                                     std::unique_lock<std::mutex> lock(this->queue_mutex);
                                     this->manager.wait(lock, [this]{ return this->exit || !this->task_queue.empty(); });
@@ -69,7 +69,7 @@ class ThreadPool {
 
   private:
     std::vector<std::thread> pool;
-    std::queue<std::function<void()>> task_queue;
+    std::queue<std::function<void(void)>> task_queue;
 
     std::mutex queue_mutex;
     std::condition_variable manager;
