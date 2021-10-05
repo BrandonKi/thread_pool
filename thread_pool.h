@@ -46,15 +46,15 @@ class ThreadPool {
             thread.join();
     }
 
-    template <std::invocable T, typename... Args> void push_work(T&& t, Args&&... args) {
+    template <std::invocable F, typename... Args> void push_work(T&& t, Args&&... args) {
         {
             std::unique_lock<std::mutex> lock(queue_mutex);
-            task_queue.push([t]() { t(args...); });
+            task_queue.push([f]() { f(args...); });
         }
         manager.notify_one();
     }
 
-    template <typename F, typename... Args>
+    template <std::invocable F, typename... Args>
     [[nodiscard]] auto push_task(F&& f, Args&&... args)
         -> std::future<std::invoke_result_t<F, Args...>> {
         using return_type = std::invoke_result_t<F, Args...>;
