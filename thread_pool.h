@@ -51,7 +51,7 @@ class ThreadPool {
     }
 
     template <std::invocable F, typename... Args>
-    void push_work(T&& t, Args&&... args) {
+    void push_work(F&& f, Args&&... args) {
         {
             std::unique_lock<std::mutex> lock(queue_mutex);
             task_queue.push([f]() { f(args...); });
