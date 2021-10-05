@@ -1,3 +1,8 @@
+/**
+ * @file thread_pool.h
+ * @author Brandon Kirincich
+ */
+
 #ifndef THREAD_POOL_H
 #define THREAD_POOL_H
 
@@ -13,16 +18,15 @@
 
 class ThreadPool {
   public:
-    ThreadPool(size_t num_threads = std::thread::hardware_concurrency())
-        : pool{}, task_queue{}, queue_mutex{}, manager{}, exit{false} {
-
+    ThreadPool(size_t num_threads = std::thread::hardware_concurrency()):
+        pool{}, task_queue{}, queue_mutex{}, manager{}, exit{false}
+    {
         auto worker = [this] {
             while (true) {
                 std::function<void(void)> task;
                 {
                     std::unique_lock<std::mutex> lock(this->queue_mutex);
-                    this->manager.wait(lock,
-                                       [this] { return this->exit || !this->task_queue.empty(); });
+                    this->manager.wait(lock, [this] { return this->exit || !this->task_queue.empty(); });
                     if (this->exit && this->task_queue.empty())
                         return;
                     task = std::move(this->task_queue.front());
@@ -46,7 +50,8 @@ class ThreadPool {
             thread.join();
     }
 
-    template <std::invocable F, typename... Args> void push_work(T&& t, Args&&... args) {
+    template <std::invocable F, typename... Args>
+    void push_work(T&& t, Args&&... args) {
         {
             std::unique_lock<std::mutex> lock(queue_mutex);
             task_queue.push([f]() { f(args...); });
@@ -55,11 +60,9 @@ class ThreadPool {
     }
 
     template <std::invocable F, typename... Args>
-    [[nodiscard]] auto push_task(F&& f, Args&&... args)
-        -> std::future<std::invoke_result_t<F, Args...>> {
+    [[nodiscard]] auto push_task(F&& f, Args&&... args) -> std::future<std::invoke_result_t<F, Args...>> {
         using return_type = std::invoke_result_t<F, Args...>;
-        auto task = std::make_shared<std::packaged_task<return_type()>>(
-            std::bind(std::forward<F>(f), std::forward<Args>(args)...));
+        auto task = std::make_shared<std::packaged_task<return_type()>>(std::bind(std::forward<F>(f), std::forward<Args>(args)...));
         std::future<return_type> result = task->get_future();
         {
             std::unique_lock<std::mutex> lock(queue_mutex);
